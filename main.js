@@ -36,6 +36,15 @@ require( 'fs' ).readdirSync( './tests' ).forEach( function( file ) {
 	}
 });
 
+function makeid() {
+    var text = "";
+    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    for( var i=0; i < 5; i++ ) {
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+    }
+    return text;
+}
+
 function getHash( target, callback ) {
 	var fd = fs.createReadStream(target);
 	var hash = crypto.createHash('sha1');
@@ -48,46 +57,52 @@ function getHash( target, callback ) {
 }
 
 function assert( testName, caseName, target ) {
-	getHash( target, function( hash ) {
-		kaiseki.getObjects( 'TestCaseData', { 'where': { 'test': testName, 'case': caseName } }, function( err, res, body, success ) {
-			if ( !body || body.length === 0 ) {
-				console.log("NEW");
-				// upload file
-				kaiseki.uploadFile( target, function( err, res, body, success ) {
-					parse.insert( 'TestCaseData', { 'test': testName, 'case': caseName, 'hash': hash, 'file': { 'name': body.name, '__type': 'File' } }, function() {} );
-				} );
-			} else {
-				if ( body[0].hash !== hash ) {
-					console.log("BAD");
-					// no match
-					sendgrid.send({
-						to:       'korczynski@gmail.com',
-						from:     'korczynski@gmail.com',
-						subject:  'Test failing',
-						html:     '<h2>' + testName + ' / ' + caseName + '</h2><br />' +
-									'<table border="1" cellpadding="1" cellspacing="1">' +
-										'<tbody>' +
-											'<tr>' +
-												'<td>Captured</td>' +
-												'<td>Original</td>' +
-											'</tr>' +
-											'<tr>' +
-												'<td><img src="cid:captured"></td>' +
-												'<td><img src="' + body[0].file.url + '" /></td>' +
-											'</tr>' +
-										'</tbody>' +
-									'</table>',
-						files: [ {
-							path: target,
-							cid: 'captured'
-						} ]
-					}, function(err, json) {
-					});
+	var id = makeid();
+	fs.rename( target, target + '.' + id, function() {
+		getHash( target + '.' + id, function( hash ) {
+			kaiseki.getObjects( 'TestCaseData', { 'where': { 'test': testName, 'case': caseName } }, function( err, res, body, success ) {
+				if ( !body || body.length === 0 ) {
+					console.log("NEW");
+					// upload file
+					kaiseki.uploadFile( target + '.' + id, function( err, res, body, success ) {
+						parse.insert( 'TestCaseData', { 'test': testName, 'case': caseName, 'hash': hash, 'file': { 'name': body.name, '__type': 'File' } }, function() {} );
+						fs.unlink( target + '.' + id );
+					} );
 				} else {
-					console.log("OK");
-					// match
+					if ( body[0].hash !== hash ) {
+						console.log("BAD");
+						// no match
+						sendgrid.send({
+							to:       'korczynski@gmail.com',
+							from:     'korczynski@gmail.com',
+							subject:  'Test failing',
+							html:     '<h2>' + testName + ' / ' + caseName + '</h2><br />' +
+										'<table border="1" cellpadding="1" cellspacing="1">' +
+											'<tbody>' +
+												'<tr>' +
+													'<td>Captured</td>' +
+													'<td>Original</td>' +
+												'</tr>' +
+												'<tr>' +
+													'<td><img src="cid:captured"></td>' +
+													'<td><img src="' + body[0].file.url + '" /></td>' +
+												'</tr>' +
+											'</tbody>' +
+										'</table>',
+							files: [ {
+								path: target + '.' + id,
+								cid: 'captured'
+							} ]
+						}, function(err, json) {
+							fs.unlink( target + '.' + id );
+						});
+					} else {
+						console.log("OK");
+						// match
+						fs.unlink( target + '.' + id );
+					}
 				}
-			}
+			} );
 		} );
 	} );
 }
@@ -127,8 +142,6 @@ function go() {
 		spooky.on( 'capture.saved', function( target ) {
 			assert( test.name(), target.split( '/' ).pop(), target );
 		} );
-	} else {
-		go.exit();
 	}
 }
 
