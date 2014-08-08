@@ -69,7 +69,7 @@ function assert( testName, caseName, target ) {
 						fs.unlink( target + '.' + id );
 					} );
 				} else {
-					if ( body[0].hash !== hash) {
+					if ( body[0].hash !== hash ) {
 						console.log("BAD");
 						// no match
 						sendgrid.send({
