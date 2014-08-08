@@ -117,7 +117,10 @@ function go() {
 					viewportSize: {
 						width: 1366,
 						height: 768
-					}
+					},
+					stepTimeout: 10000,
+					timeout: 10000,
+					waitTimeout: 10000
 				}
 			},
 			function( err ) {
