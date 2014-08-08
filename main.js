@@ -75,20 +75,18 @@ function assert( testName, caseName, target ) {
 						sendgrid.send({
 							to:       'korczynski@gmail.com',
 							from:     'korczynski@gmail.com',
-							subject:  'Test failing',
+							subject:  'Test failing:' + testName + ' / ' + caseName,
 							html:     '<h2>' + testName + ' / ' + caseName + '</h2><br />' +
-										'<table border="1" cellpadding="1" cellspacing="1">' +
-											'<tbody>' +
-												'<tr>' +
-													'<td>Captured</td>' +
-													'<td>Original</td>' +
-												'</tr>' +
-												'<tr>' +
-													'<td><img src="cid:captured"></td>' +
-													'<td><img src="' + body[0].file.url + '" /></td>' +
-												'</tr>' +
-											'</tbody>' +
-										'</table>',
+										'<div>' +
+											'<div>' +
+												'<div><h3>Captured</h3></td></div>' +
+												'<div><img src="cid:captured"></div>' +
+											'</div>' +
+											'<div>' +
+												'<div><h3>Original</h3></td></div>' +
+												'<div><img src="' + body[0].file.url + '" /></div>' +
+											'</div>' +
+										'</div>',
 							files: [ {
 								path: target + '.' + id,
 								cid: 'captured'
